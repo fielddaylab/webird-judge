@@ -45,6 +45,22 @@ var offset;
 var page = 0;
 var batchSize = 20;
 var notes = [];
+var blowup = document.createElement('img');
+blowup.style.position = 'fixed';
+blowup.style.top = '-1000px';
+blowup.style.left = '10px';
+blowup.style.maxWidth = window.innerWidth-20;
+blowup.style.maxHeight = window.innerHeight-20;
+function dismissBlowup()
+{
+	blowup.style.top = '-1000';
+}
+function displayBlowup(src)
+{
+	blowup.src = src;
+	blowup.style.top = '10px';
+}
+blowup.onclick = dismissBlowup;
 function onload()
 {
 	var params = parseURLParams();
@@ -125,6 +141,8 @@ function refreshBody()
 		}
 			bod.appendChild(getCellForNote(notes[i]));
 	}
+	bod.appendChild(blowup);
+	dismissBlowup();
 }
 
 function getHeaderForDate(d)
@@ -183,15 +201,16 @@ function getCellForNote(n)
 		if(n.contents[i].type == "PHOTO") 
 		{
 			var media = document.createElement('img');
-			media.style.float = "left";
+			//media.style.float = "left";
 			media.style.height = "200px";
 			media.src = n.contents[i].url;
+			media.onclick = function(){ displayBlowup(this.src); };
 			contents.appendChild(media);
 		}
 		if(n.contents[i].type == "AUDIO") 
 		{
 			var media = document.createElement('audio');
-			media.style.float = "left";
+			//media.style.float = "left";
 			media.controls = true;
 			var mediaSrc = document.createElement('source');
 			mediaSrc.src = n.contents[i].url;
@@ -201,7 +220,7 @@ function getCellForNote(n)
 		if(n.contents[i].type == "VIDEO") 
 		{
 			var media = document.createElement('video');
-			media.style.float = "left";
+			//media.style.float = "left";
 			media.style.height = "200px";
 			media.controls = true;
 			var mediaSrc = document.createElement('source');
