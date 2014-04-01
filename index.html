@@ -1,6 +1,9 @@
 <html>
 <head>
-<script type="text/javascript" src="json.js"></script>
+<style>
+body,div,span { font-family:Helvetica; }
+</style>
+<script type="text/javascript" src="../json.js"></script>
 <script type="text/javascript">
 
 function parseURLParams() 
@@ -73,8 +76,7 @@ function formatForm()
 	var offsetIn    = document.createElement('input'); offsetIn.type    = 'text'; offsetIn.id    = "offsetIn";    offsetIn.value    = offset;    bod.appendChild(offsetIn);
 	title = document.createElement('div'); title.innerHTML = "<br />"; bod.appendChild(title);;
 
-	var submit = document.createElement('button'); submit.innerHTML = "Go"; submit.onclick = function() { window.location = "http://arisgames.org/scratch/webirdjudge.html?gameId="+gameIdIn.value+"&startDate="+startDateIn.value+"&endDate="+endDateIn.value+"&mod="+modIn.value+"&offset="+offsetIn.value; }; bod.appendChild(submit);
-
+	var submit = document.createElement('button'); submit.innerHTML = "Go"; submit.onclick = function() { window.location = "http://arisgames.org/scratch/webirdjudge/index.html?gameId="+gameIdIn.value+"&startDate="+startDateIn.value+"&endDate="+endDateIn.value+"&mod="+modIn.value+"&offset="+offsetIn.value; }; bod.appendChild(submit);
 }
 
 function requestNextNotes()
@@ -99,98 +101,119 @@ function newNotesAvailable(data)
 		requestNextNotes();
 	}
 	else
+	{
+                notes.sort(function(a,b){ return a.created < b.created ? 1 : -1;});
 		refreshBody();
+	}
 }
 
 function refreshBody()
 {
 	var bod = document.getElementById('body');
 	bod.innerHTML = "";
+	var curdate;
 	for(var i = 0; i < notes.length; i++)
+	{
+		if(curdate != notes[i].created.substring(0,10))
+		{
+			curdate = notes[i].created.substring(0,10);
+			bod.appendChild(getHeaderForDate(curdate));
+		}
 		if(notes[i].owner.player_id % mod == offset)
 			bod.appendChild(getCellForNote(notes[i]));
+	}
 }
 
-function getCellForNote(note)
+function getHeaderForDate(d)
+{
+	var header = document.createElement('div');
+	header.style.padding = "20px";
+	header.style.fontSize = "20px";
+	header.style.color = "#2222FF";
+	header.style.clear = "both";
+	header.innerHTML = d;
+	return header;
+}
+
+function getCellForNote(n)
 {
 	var cell = document.createElement('div');
 	cell.style.padding = "20px";
-	cell.style.minHeight = "120px";
-	cell.style.minWidth = "100px";
+	cell.style.clear = "both";
+
 	var liked = document.createElement('img');
 	liked.style.display = 'block';
-	liked.style.height = '100px';
-	liked.style.width = '100px';
+	liked.style.height = '50px';
+	liked.style.width = '50px';
+	liked.style.margin = '0px 20px 0px 0px';
 	liked.style.float = 'left';
-	function likeThisNote()    { liked.onclick = dislikeThisNote; liked.src = "http://arisgames.org/server/gamedata/0/oldcoin.png"; note.likes.push({"like":"yep"}); likeNote(note.note_id);    };
-	function dislikeThisNote() { liked.onclick = likeThisNote;    liked.src = "http://arisgames.org/server/gamedata/0/umbrella.png"; note.likes = [];                 dislikeNote(note.note_id); };
-	if(note.likes.length > 0) { liked.onclick = dislikeThisNote; liked.src = "http://arisgames.org/server/gamedata/0/oldcoin.png"; }
-	else                      { liked.onclick = likeThisNote;    liked.src = "http://arisgames.org/server/gamedata/0/umbrella.png"; }
-	var thenote = document.createElement('div');
-	thenote.style.minHeight = "120px";
-	thenote.style.minWidth = "100px";
-	var owner = document.createElement('div');
-	owner.innerHTML = note.owner.display_name;
-	var noteDescription = document.createElement('div');
-	noteDescription.innerHTML = note.title+" - ";
-	for(var i = 0; i < note.tags.length; i++)
+	function likeThisNote()    { liked.onclick = dislikeThisNote; liked.src = "check_full.png";  n.likes.push({"like":"yep"}); likeNote(n.note_id);    };
+	function dislikeThisNote() { liked.onclick = likeThisNote;    liked.src = "check_empty.png"; n.likes = [];                 dislikeNote(n.note_id); };
+	if(n.likes.length > 0)     { liked.onclick = dislikeThisNote; liked.src = "check_full.png";  }
+	else                       { liked.onclick = likeThisNote;    liked.src = "check_empty.png"; }
+
+	var note = document.createElement('div');
+
+	var title = document.createElement('div');
+	title.innerHTML = n.title;
+
+	var label = document.createElement('div');
+	label.style.fontWeight = 'bold';
+	label.innerHTML = "| ";
+	for(var i = 0; i < n.tags.length; i++)
+		label.innerHTML += n.tags[i].tag+" | ";
+
+	var description = document.createElement('div');
+	description.innerHTML = "";
+	var contents = document.createElement('div');
+	for(var i = 0; i < n.contents.length; i++)
 	{
-		noteDescription.innerHTML += note.tags[i].tag+", ";
-	}
-	var noteContents = document.createElement('div');
-	noteContents.style.minHeight = "100px";
-	for(var i = 0; i < note.contents.length; i++)
-	{
-		if(note.contents[i].type == "TEXT") noteDescription.innerHTML += note.contents[i].text;
-		if(note.contents[i].type == "MEDIA")
+		if(n.contents[i].type == "TEXT") description.innerHTML += n.contents[i].text;
+		if(n.contents[i].type == "MEDIA")
 		{
 			var re = /(?:\.([^.]+))?$/;
-			var fileext = re.exec(note.contents[i].url)[1];
-			if(fileext == "jpg" || fileext == "png" || fileext == "gif") note.contents[i].type = "PHOTO";
-			if(fileext == "m4a")                                         note.contents[i].type = "AUDIO";
-			if(fileext == "mp4")                                         note.contents[i].type = "VIDEO";
+			var fileext = re.exec(n.contents[i].url)[1];
+			if(fileext == "jpg" || fileext == "png" || fileext == "gif") n.contents[i].type = "PHOTO";
+			if(fileext == "m4a")                                         n.contents[i].type = "AUDIO";
+			if(fileext == "mp4")                                         n.contents[i].type = "VIDEO";
 		}
-		if(note.contents[i].type == "PHOTO") 
+		if(n.contents[i].type == "PHOTO") 
 		{
 			var media = document.createElement('img');
 			media.style.float = "left";
-			media.style.height = "100px";
-			media.src = note.contents[i].url;
-			noteContents.appendChild(media);
+			media.style.height = "200px";
+			media.src = n.contents[i].url;
+			contents.appendChild(media);
 		}
-		if(note.contents[i].type == "AUDIO") 
+		if(n.contents[i].type == "AUDIO") 
 		{
 			var media = document.createElement('audio');
 			media.style.float = "left";
 			media.controls = true;
 			var mediaSrc = document.createElement('source');
-			mediaSrc.src = note.contents[i].url;
+			mediaSrc.src = n.contents[i].url;
 			media.appendChild(mediaSrc);
-			noteContents.appendChild(media);
+			contents.appendChild(media);
 		}
-		if(note.contents[i].type == "VIDEO") 
+		if(n.contents[i].type == "VIDEO") 
 		{
 			var media = document.createElement('video');
 			media.style.float = "left";
-			media.style.height = "100px";
+			media.style.height = "200px";
 			media.controls = true;
 			var mediaSrc = document.createElement('source');
-			mediaSrc.src = note.contents[i].url;
+			mediaSrc.src = n.contents[i].url;
 			media.appendChild(mediaSrc);
-			noteContents.appendChild(media);
+			contents.appendChild(media);
 		}
 	}
-	var clear = document.createElement('div');
-	clear.style.float = "clear";
-	clear.style.width = "10px";
-	clear.style.height = "10px";
-	noteContents.appendChild(clear);
 
 	cell.appendChild(liked);
-	thenote.appendChild(owner);
-	thenote.appendChild(noteDescription);
-	thenote.appendChild(noteContents);
-	cell.appendChild(thenote);
+	note.appendChild(title);
+	note.appendChild(label);
+	note.appendChild(description);
+	note.appendChild(contents);
+	cell.appendChild(note);
 	return cell;
 }
 
