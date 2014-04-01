@@ -1,0 +1,120 @@
+<html>
+<head>
+<style>
+body,div,span { font-family:Helvetica; }
+</style>
+<script type="text/javascript" src="../json.js"></script>
+<script type="text/javascript">
+
+function parseURLParams() 
+{
+	var url = document.URL;
+	var queryStart = url.indexOf("?") + 1;
+	var queryEnd   = url.indexOf("#") + 1 || url.length + 1;
+	var query      = url.slice(queryStart, queryEnd - 1);
+
+	var params  = {};
+	if (query === url || query === "") return params;
+	var nvPairs = query.replace(/\+/g, " ").split("&");
+
+	for(var i=0; i< nvPairs.length; i++)
+	{
+		var nv = nvPairs[i].split("=");
+		var n  = decodeURIComponent(nv[0]);
+		var v  = decodeURIComponent(nv[1]);
+		if(!(n in params)) params[n] = [];
+		params[n].push(nv.length === 2 ? v : null);
+	}
+	return params;
+}
+
+function sendRequest(fn, callback, params, method)
+{
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.open(method,"http://arisgames.org/server/json.php/v1."+fn,true);
+	xmlhttp.onreadystatechange = function() { if(xmlhttp.readyState == 4) callback(JSON.parse(xmlhttp.responseText)); };
+	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xmlhttp.send(params);
+}
+
+var gameId;
+var startDate;
+var endDate;
+var leaders = [];
+function onload()
+{
+	var params = parseURLParams();
+	gameId    = parseInt(params.gameId);
+	startDate = params.startDate ? params.startDate : "0000-00-00 00:00:00";
+	endDate   = params.endDate   ? params.endDate   : "9999-99-99 99:99:99";
+
+	if(gameId) getLeaderboard();
+	else formatForm();
+}
+
+function formatForm()
+{
+	var bod = document.getElementById('body');
+	bod.innerHTML = "";
+	gameId = 10639;
+	var title;
+	title = document.createElement('div'); title.innerHTML = "<br />GameId:"; bod.appendChild(title);
+	var gameIdIn    = document.createElement('input'); gameIdIn.type    = 'text'; gameIdIn.id    = "gameIdIn";    gameIdIn.value    = gameId;    bod.appendChild(gameIdIn);
+	title = document.createElement('div'); title.innerHTML = "<br />Start Date:"; bod.appendChild(title);
+	var startDateIn = document.createElement('input'); startDateIn.type = 'text'; startDateIn.id = "startDateIn"; startDateIn.value = startDate; bod.appendChild(startDateIn);
+	title = document.createElement('div'); title.innerHTML = "<br />End Date:"; bod.appendChild(title);
+	var endDateIn   = document.createElement('input'); endDateIn.type   = 'text'; endDateIn.id   = "endDateIn";   endDateIn.value   = endDate;   bod.appendChild(endDateIn);
+	title = document.createElement('div'); title.innerHTML = "<br />"; bod.appendChild(title);;
+
+	var submit = document.createElement('button'); submit.innerHTML = "Go"; submit.onclick = function() { window.location = "http://arisgames.org/scratch/webirdjudge/leaderboard.html?gameId="+gameIdIn.value+"&startDate="+startDateIn.value+"&endDate="+endDateIn.value }; bod.appendChild(submit);
+}
+
+function getLeaderboard()
+{
+	sendRequest("scratch.topPlayersWithMostLikedNotes/"+gameId+"/"+startDate+"/"+endDate,leaderboardGot,null,"GET");
+}
+
+function leaderboardGot(data)
+{
+	leaders = data;
+        leaders.sort(function(a,b){ return a.liked_notes < b.liked_notes ? 1 : -1;});
+
+	var bod = document.getElementById('body');
+	bod.innerHTML = "";
+	var table = document.createElement('div');
+	table.style.width = "250px";
+	table.style.margin = "10px auto";
+	table.style.border = "1px solid black";
+
+	for(var i = 0; i < leaders.length; i++)
+		table.appendChild(getCellForLeader(leaders[i]));
+	bod.appendChild(table);
+}
+
+function getCellForLeader(l)
+{
+	var cell = document.createElement('div');
+	cell.style.height = "20px";
+	cell.style.margin = "10px 10px 0px 10px";
+	cell.style.clear = "both";
+
+	var name = document.createElement('div');
+	name.style.float = "left";
+	name.innerHTML = l.display_name;
+
+	var likedNotes = document.createElement('div');
+	likedNotes.style.fontWeight = 'bold';
+	likedNotes.style.float = "right";
+	likedNotes.innerHTML = l.liked_notes;
+
+	cell.appendChild(name);
+	cell.appendChild(likedNotes);
+
+	return cell;
+}
+
+</script>
+</head>
+<body id="body" onload="onload()">
+</body>
+</html>
