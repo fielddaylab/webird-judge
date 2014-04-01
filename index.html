@@ -91,7 +91,11 @@ function newNotesAvailable(data)
 	{
 		if(data[i].created > startDate)
 		{
-			if(data[i].created < endDate) notes.push(data[i]);
+			if(data[i].created < endDate)
+			{
+				if(data[i].note_id % mod == offset)
+ 					notes.push(data[i]);
+			}
 			else stopRequesting = true;
 		}
 	}
@@ -119,7 +123,6 @@ function refreshBody()
 			curdate = notes[i].created.substring(0,10);
 			bod.appendChild(getHeaderForDate(curdate));
 		}
-		if(notes[i].owner.player_id % mod == offset)
 			bod.appendChild(getCellForNote(notes[i]));
 	}
 }
