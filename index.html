@@ -1,0 +1,211 @@
+<html>
+<head>
+<script type="text/javascript" src="json.js"></script>
+<script type="text/javascript">
+
+function parseURLParams() 
+{
+	var url = document.URL;
+	var queryStart = url.indexOf("?") + 1;
+	var queryEnd   = url.indexOf("#") + 1 || url.length + 1;
+	var query      = url.slice(queryStart, queryEnd - 1);
+
+	var params  = {};
+	if (query === url || query === "") return params;
+	var nvPairs = query.replace(/\+/g, " ").split("&");
+
+	for(var i=0; i< nvPairs.length; i++)
+	{
+		var nv = nvPairs[i].split("=");
+		var n  = decodeURIComponent(nv[0]);
+		var v  = decodeURIComponent(nv[1]);
+		if(!(n in params)) params[n] = [];
+		params[n].push(nv.length === 2 ? v : null);
+	}
+	return params;
+}
+
+function sendRequest(fn, callback, params, method)
+{
+	var xmlhttp = new XMLHttpRequest();
+	xmlhttp.open(method,"http://arisgames.org/server/json.php/v1."+fn,true);
+	xmlhttp.onreadystatechange = function() { if(xmlhttp.readyState == 4) callback(JSON.parse(xmlhttp.responseText).data); };
+	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+	xmlhttp.send(params);
+}
+
+var gameId;
+var startDate;
+var endDate;
+var mod;
+var offset;
+var page = 0;
+var batchSize = 20;
+var notes = [];
+function onload()
+{
+	var params = parseURLParams();
+	gameId    = parseInt(params.gameId);
+	startDate = params.startDate ? params.startDate : "0000-00-00 00:00:00";
+	endDate   = params.endDate   ? params.endDate   : "9999-99-99 99:99:99";
+	mod       = params.mod       ? parseInt(params.mod)    : 1;
+	offset    = params.offset    ? parseInt(params.offset) : 0;
+
+	if(gameId) requestNextNotes();
+	else formatForm();
+}
+
+function formatForm()
+{
+	var bod = document.getElementById('body');
+	bod.innerHTML = "";
+	gameId = 10639;
+	var title;
+	title = document.createElement('div'); title.innerHTML = "<br />GameId:"; bod.appendChild(title);
+	var gameIdIn    = document.createElement('input'); gameIdIn.type    = 'text'; gameIdIn.id    = "gameIdIn";    gameIdIn.value    = gameId;    bod.appendChild(gameIdIn);
+	title = document.createElement('div'); title.innerHTML = "<br />Start Date:"; bod.appendChild(title);
+	var startDateIn = document.createElement('input'); startDateIn.type = 'text'; startDateIn.id = "startDateIn"; startDateIn.value = startDate; bod.appendChild(startDateIn);
+	title = document.createElement('div'); title.innerHTML = "<br />End Date:"; bod.appendChild(title);
+	var endDateIn   = document.createElement('input'); endDateIn.type   = 'text'; endDateIn.id   = "endDateIn";   endDateIn.value   = endDate;   bod.appendChild(endDateIn);
+	title = document.createElement('div'); title.innerHTML = "<br />Mod:"; bod.appendChild(title);
+	var modIn       = document.createElement('input'); modIn.type       = 'text'; modIn.id       = "modIn";       modIn.value       = mod;       bod.appendChild(modIn);
+	title = document.createElement('div'); title.innerHTML = "<br />Offset:"; bod.appendChild(title);;
+	var offsetIn    = document.createElement('input'); offsetIn.type    = 'text'; offsetIn.id    = "offsetIn";    offsetIn.value    = offset;    bod.appendChild(offsetIn);
+	title = document.createElement('div'); title.innerHTML = "<br />"; bod.appendChild(title);;
+
+	var submit = document.createElement('button'); submit.innerHTML = "Go"; submit.onclick = function() { window.location = "http://arisgames.org/scratch/webirdjudge.html?gameId="+gameIdIn.value+"&startDate="+startDateIn.value+"&endDate="+endDateIn.value+"&mod="+modIn.value+"&offset="+offsetIn.value; }; bod.appendChild(submit);
+
+}
+
+function requestNextNotes()
+{
+	sendRequest("notebook.getFullNotesVisibleToGame/"+gameId+"/"+page+"/"+batchSize,newNotesAvailable,null,"GET");
+}
+
+function newNotesAvailable(data)
+{
+	var stopRequesting = (data.length < batchSize);
+	for(var i = 0; i < data.length; i++)
+	{
+		if(data[i].created > startDate)
+		{
+			if(data[i].created < endDate) notes.push(data[i]);
+			else stopRequesting = true;
+		}
+	}
+	if(!stopRequesting)
+	{
+		page++;
+		requestNextNotes();
+	}
+	else
+		refreshBody();
+}
+
+function refreshBody()
+{
+	var bod = document.getElementById('body');
+	bod.innerHTML = "";
+	for(var i = 0; i < notes.length; i++)
+		if(notes[i].owner.player_id % mod == offset)
+			bod.appendChild(getCellForNote(notes[i]));
+}
+
+function getCellForNote(note)
+{
+	var cell = document.createElement('div');
+	cell.style.padding = "20px";
+	cell.style.minHeight = "120px";
+	cell.style.minWidth = "100px";
+	var liked = document.createElement('img');
+	liked.style.display = 'block';
+	liked.style.height = '100px';
+	liked.style.width = '100px';
+	liked.style.float = 'left';
+	function likeThisNote()    { liked.onclick = dislikeThisNote; liked.src = "http://arisgames.org/server/gamedata/0/oldcoin.png"; note.likes.push({"like":"yep"}); likeNote(note.note_id);    };
+	function dislikeThisNote() { liked.onclick = likeThisNote;    liked.src = "http://arisgames.org/server/gamedata/0/umbrella.png"; note.likes = [];                 dislikeNote(note.note_id); };
+	if(note.likes.length > 0) { liked.onclick = dislikeThisNote; liked.src = "http://arisgames.org/server/gamedata/0/oldcoin.png"; }
+	else                      { liked.onclick = likeThisNote;    liked.src = "http://arisgames.org/server/gamedata/0/umbrella.png"; }
+	var thenote = document.createElement('div');
+	thenote.style.minHeight = "120px";
+	thenote.style.minWidth = "100px";
+	var owner = document.createElement('div');
+	owner.innerHTML = note.owner.display_name;
+	var noteDescription = document.createElement('div');
+	noteDescription.innerHTML = note.title+" - ";
+	for(var i = 0; i < note.tags.length; i++)
+	{
+		noteDescription.innerHTML += note.tags[i].tag+", ";
+	}
+	var noteContents = document.createElement('div');
+	noteContents.style.minHeight = "100px";
+	for(var i = 0; i < note.contents.length; i++)
+	{
+		if(note.contents[i].type == "TEXT") noteDescription.innerHTML += note.contents[i].text;
+		if(note.contents[i].type == "MEDIA")
+		{
+			var re = /(?:\.([^.]+))?$/;
+			var fileext = re.exec(note.contents[i].url)[1];
+			if(fileext == "jpg" || fileext == "png" || fileext == "gif") note.contents[i].type = "PHOTO";
+			if(fileext == "m4a")                                         note.contents[i].type = "AUDIO";
+			if(fileext == "mp4")                                         note.contents[i].type = "VIDEO";
+		}
+		if(note.contents[i].type == "PHOTO") 
+		{
+			var media = document.createElement('img');
+			media.style.float = "left";
+			media.style.height = "100px";
+			media.src = note.contents[i].url;
+			noteContents.appendChild(media);
+		}
+		if(note.contents[i].type == "AUDIO") 
+		{
+			var media = document.createElement('audio');
+			media.style.float = "left";
+			media.controls = true;
+			var mediaSrc = document.createElement('source');
+			mediaSrc.src = note.contents[i].url;
+			media.appendChild(mediaSrc);
+			noteContents.appendChild(media);
+		}
+		if(note.contents[i].type == "VIDEO") 
+		{
+			var media = document.createElement('video');
+			media.style.float = "left";
+			media.style.height = "100px";
+			media.controls = true;
+			var mediaSrc = document.createElement('source');
+			mediaSrc.src = note.contents[i].url;
+			media.appendChild(mediaSrc);
+			noteContents.appendChild(media);
+		}
+	}
+	var clear = document.createElement('div');
+	clear.style.float = "clear";
+	clear.style.width = "10px";
+	clear.style.height = "10px";
+	noteContents.appendChild(clear);
+
+	cell.appendChild(liked);
+	thenote.appendChild(owner);
+	thenote.appendChild(noteDescription);
+	thenote.appendChild(noteContents);
+	cell.appendChild(thenote);
+	return cell;
+}
+
+function likeNote(noteId)
+{
+	sendRequest("notebook.likeNote/570/"+noteId, function(){}, null, "GET")
+}
+
+function dislikeNote(noteId)
+{
+	sendRequest("notebook.unlikeNote/570/"+noteId, function(){}, null, "GET")
+}
+
+</script>
+</head>
+<body id="body" onload="onload()">
+</body>
+</html>
