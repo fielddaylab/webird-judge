@@ -47,6 +47,7 @@ function onload()
 	gameId    = parseInt(params.gameId);
 	startDate = params.startDate ? params.startDate : "0000-00-00 00:00:00";
 	endDate   = params.endDate   ? params.endDate   : "9999-99-99 99:99:99";
+	playerId  = params.playerId  ? params.playerId  : 0;
 
 	if(gameId) getLeaderboard();
 	else formatForm();
@@ -64,9 +65,11 @@ function formatForm()
 	var startDateIn = document.createElement('input'); startDateIn.type = 'text'; startDateIn.id = "startDateIn"; startDateIn.value = startDate; bod.appendChild(startDateIn);
 	title = document.createElement('div'); title.innerHTML = "<br />End Date:"; bod.appendChild(title);
 	var endDateIn   = document.createElement('input'); endDateIn.type   = 'text'; endDateIn.id   = "endDateIn";   endDateIn.value   = endDate;   bod.appendChild(endDateIn);
+	title = document.createElement('div'); title.innerHTML = "<br />Player Id:"; bod.appendChild(title);
+	var playerIdIn   = document.createElement('input'); playerIdIn.type   = 'text'; playerIdIn.id   = "playerIdIn";   playerIdIn.value   = playerId;   bod.appendChild(playerIdIn);
 	title = document.createElement('div'); title.innerHTML = "<br />"; bod.appendChild(title);;
 
-	var submit = document.createElement('button'); submit.innerHTML = "Go"; submit.onclick = function() { window.location = "http://arisgames.org/scratch/webirdjudge/leaderboard.html?gameId="+gameIdIn.value+"&startDate="+startDateIn.value+"&endDate="+endDateIn.value }; bod.appendChild(submit);
+	var submit = document.createElement('button'); submit.innerHTML = "Go"; submit.onclick = function() { window.location = "http://arisgames.org/scratch/webirdjudge/leaderboard.html?gameId="+gameIdIn.value+"&startDate="+startDateIn.value+"&endDate="+endDateIn.value+"&playerId="+playerIdIn.value }; bod.appendChild(submit);
 }
 
 function getLeaderboard()
@@ -86,7 +89,11 @@ function leaderboardGot(data)
 	table.style.margin = "10px auto";
 	table.style.border = "1px solid black";
 
+	var j = 0;
 	for(var i = 0; i < leaders.length; i++)
+		if(leaders[i].player_id == playerId) j = i-(i%10);
+
+	for(var i = j; i < leaders.length && i < j+10; i++)
 		table.appendChild(getCellForLeader(leaders[i]));
 	bod.appendChild(table);
 }
