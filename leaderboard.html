@@ -3,7 +3,6 @@
 <style>
 body,div,span { font-family:Helvetica; }
 </style>
-<script type="text/javascript" src="../json.js"></script>
 <script type="text/javascript">
 
 function parseURLParams() 
@@ -32,7 +31,7 @@ function sendRequest(fn, callback, params, method)
 {
 	var xmlhttp = new XMLHttpRequest();
 	xmlhttp.open(method,"http://arisgames.org/server/json.php/v1."+fn,true);
-	xmlhttp.onreadystatechange = function() { if(xmlhttp.readyState == 4) callback(JSON.parse(xmlhttp.responseText)); };
+	xmlhttp.onreadystatechange = function() { if(xmlhttp.readyState == 4) callback(eval(xmlhttp.responseText)); };
 	xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 	xmlhttp.send(params);
 }
@@ -41,6 +40,39 @@ var gameId;
 var startDate;
 var endDate;
 var leaders = [];
+var weight = {
+"American Coot":1,
+"American Crow":1,
+"American Goldfinch":1,
+"American Robin":1,
+"Belted Kingfisher":3,
+"Black-capped Chickadee":1,
+"Blue Jay":1,
+"Canada Goose":1,
+"Brown Creeper":7,
+"Cedar Waxwing":5,
+"Dark-eyed Junco":2,
+"Downy Woodpecker":1,
+"European Starling":1,
+"Hairy Woodpecker":2,
+"House Finch":1,
+"House Sparrow":1,
+"Mallard":1,
+"Mourning Dove":1,
+"Northern Cardinal":1,
+"Pine Siskin":4,
+"Red-bellied Woodpecker":2,
+"Red-tailed Hawk":2,
+"Red-breasted Nuthatch":5,
+"Ring-billed Gull":2,
+"Rock Pigeon":1,
+"Tufted Titmouse":3,
+"Turkey Vulture":2,
+"White-breasted Nuthatch":2,
+"White-throated Sparrow":3,
+"Wild Turkey":2,
+"Wood Duck":5
+};
 function onload()
 {
 	var params = parseURLParams();
@@ -74,13 +106,24 @@ function formatForm()
 
 function getLeaderboard()
 {
-	sendRequest("scratch.topPlayersWithMostLikedNotes/"+gameId+"/"+startDate+"/"+endDate,leaderboardGot,null,"GET");
+	sendRequest("scratch.likedNotesWithOwnersAndTags/"+gameId+"/"+startDate+"/"+endDate,leaderboardGot,null,"GET");
 }
 
 function leaderboardGot(data)
 {
 	leaders = data;
-        leaders.sort(function(a,b){ return a.liked_notes < b.liked_notes ? 1 : -1;});
+	//apply weighted scores to leaders
+	for(var i = 0; i < leaders.length; i++)
+	{
+		leaders[i].score = 0;
+		for(var j = 0; j < leaders[i].liked_note_tags.length; j++)
+		{
+			if(weight[leaders[i].liked_note_tags[j]]) leaders[i].score += weight[leaders[i].liked_note_tags[j]];
+			else console.log("'"+leaders[i].liked_note_tags[j]+"' invalid");
+		}
+	}
+
+        leaders.sort(function(a,b){ return a.score < b.score ? 1 : -1;});
 
 	var bod = document.getElementById('body');
 	bod.innerHTML = "";
@@ -109,13 +152,13 @@ function getCellForLeader(l)
 	name.style.float = "left";
 	name.innerHTML = l.display_name;
 
-	var likedNotes = document.createElement('div');
-	likedNotes.style.fontWeight = 'bold';
-	likedNotes.style.float = "right";
-	likedNotes.innerHTML = l.liked_notes;
+	var score = document.createElement('div');
+	score.style.fontWeight = 'bold';
+	score.style.float = "right";
+	score.innerHTML = l.score;
 
 	cell.appendChild(name);
-	cell.appendChild(likedNotes);
+	cell.appendChild(score);
 
 	return cell;
 }
@@ -125,3 +168,4 @@ function getCellForLeader(l)
 <body id="body" onload="onload()">
 </body>
 </html>
+
