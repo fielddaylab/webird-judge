@@ -5,6 +5,36 @@ body,div,span { font-family:Helvetica; }
 </style>
 <script type="text/javascript">
 
+var ARIS = {};
+ARIS.didReceivePlayer = function(p)
+{
+	var params = parseURLParams();
+	//gameId    = parseInt(params.gameId);
+	gameId = 10639;
+	//playerId  = params.playerId  ? params.playerId  : playerId;
+	playerId = p.playerId;
+	startDate = params.startDate ? params.startDate : "0000-00-00 00:00:00";
+	endDate   = params.endDate   ? params.endDate   : "9999-99-99 99:99:99";
+
+	if(gameId) getLeaderboard();
+	else formatForm();
+}
+ARIS.ready = function()
+{
+	incrementReady();
+}
+
+readyCount = 0;
+var incrementReady = function()
+{
+	readyCount++;
+	if(readyCount >=2) everythingReady();
+}
+var everythingReady = function()
+{
+	ARIS.getPlayer();
+}
+
 function parseURLParams() 
 {
 	var url = document.URL;
@@ -75,14 +105,7 @@ var weight = {
 };
 function onload()
 {
-	var params = parseURLParams();
-	gameId    = parseInt(params.gameId);
-	startDate = params.startDate ? params.startDate : "0000-00-00 00:00:00";
-	endDate   = params.endDate   ? params.endDate   : "9999-99-99 99:99:99";
-	playerId  = params.playerId  ? params.playerId  : 0;
-
-	if(gameId) getLeaderboard();
-	else formatForm();
+	incrementReady();
 }
 
 function formatForm()
@@ -138,6 +161,13 @@ function leaderboardGot(data)
 
 	for(var i = j; i < leaders.length && i < j+10; i++)
 		table.appendChild(getCellForLeader(leaders[i]));
+	
+	var birdbracket = document.createElement('div');
+	birdbracket.innerHTML = "Bird Bracket "+(Math.floor(j/10)+1);
+	birdbracket.style.width = "250px";
+	birdbracket.style.margin = "10px auto";
+
+	bod.appendChild(birdbracket);
 	bod.appendChild(table);
 }
 
@@ -165,7 +195,7 @@ function getCellForLeader(l)
 
 </script>
 </head>
-<body id="body" onload="onload()">
+<body style="height:500px;" id="body" onload="onload()">
 </body>
 </html>
 
